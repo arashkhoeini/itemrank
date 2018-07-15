@@ -1,11 +1,23 @@
 from __future__ import division
-import numpy as np 
+import numpy as np
 
 class Node(object):
+	"""
+		This class is used to generate a graph of users and items. That graph
+		will be mainly used to generate a coefficient matrix.
+	"""
 	def __init__(self):
 		self.neighbours = []
 
 class ItemRank(object):
+	"""
+		This class contains methods to implement ItemRank algorithm. sample use
+		of this class is as below:
+		 item_rank = ItemRank(data)
+
+	"""
+
+	#data must be in a format of move,item,rate
 	def __init__(self, np_data):
 		self.movie_names = []
 		self.user_names = []
@@ -14,7 +26,7 @@ class ItemRank(object):
 		self.data = np_data
 
 
-
+	#generates bipartial user/item graph.
 	def generate_graph(self):
 		node = Node();
 		self.movie_names = list(set(self.data[:,1]))
@@ -48,7 +60,7 @@ class ItemRank(object):
 
 	def item_rank(self, alpha, IR, d):
 		return alpha * np.dot(self.correlation_matrix, IR) + (1-alpha) * d
-
+	#generates d, which is a vector of user rates to all movies
 	def generate_d(self, user_name):
 		d = np.zeros(len(self.movie_names))
 		for i in range(len(self.data[:,0])):
@@ -69,7 +81,7 @@ class ItemRank(object):
 
 	def calculate_NW_for_user(self,np_test_data, user_name):
 		NW = set()
-		all_data = np.concatenate((np_data, np_test_data), axis = 0)
+		all_data = np.concatenate((self.data, np_test_data), axis = 0)
 		user_rated_movies = []
 		for i in range(len(all_data[:,0])):
 			if all_data[i,0] == user_name:
@@ -85,7 +97,7 @@ class ItemRank(object):
 			if np_test_data[i,0] == user_name:
 				Tu.add(np_test_data[i,1])
 		return list(Tu)
-		
+
 	def check_order(self, IR, j , k ):
 		try:
 			if IR[self.movie_names.index(j)] >= IR[self.movie_names.index(k)]:
@@ -93,66 +105,4 @@ class ItemRank(object):
 			else:
 				return 0
 		except ValueError:
-			print "ValueError"
 			return 1
-
-
-
-
-def generate_correlation_matrix(np_data):
-	movies = list(set(np_data[:,1]))
-	users = list(set(np_data[:,0]))
-	correlation_matrix = np.zeros((len(movies) , len(movies)))
-	for i in range(len(movies)):
-		for j in range(len(movies)):
-			for k in range(len(np_data[:,0])):
-				for l in range(len(np_data[:,0])):
-					if np_data[k,0] == np_data[l,0]:
-						 if np_data[k,1] != np_data[l,1]:
-						 	correlation_matrix[movies.index(np_data[k,1]),movies.index(np_data[l,1])] += 1
-	return correlation_matrix/(len(movies)*len(movies))
-
-
-
-with open("u1.base") as file:
-	data = []
-	for line in file:
-		data.extend(line.rstrip("\n").split("\t"))
-np_data = np.array(data).reshape(-1,4).astype(int)
-with open("u1.test") as file:
-	data = []
-	for line in file:
-		data.extend(line.rstrip("\n").split("\t"))
-np_test_data = np.array(data).reshape(-1,4).astype(int)
-#print np_data
-
-fake_data = np.array([
-	[1 , 1 , 2]
-	,[1, 2 , 3]
-	,[1 ,3 , 5]
-	,[1 ,4 , 5]
-	,[2 ,3 , 4]
-	,[2 , 4 , 4]
-	,[2 , 1 , 3]
-	,[3 , 2 , 5]
-	,[3, 3 , 3]
-	,[4 , 1 , 4]
-	,[4, 3, 4]
-	,[4 , 4 , 3]
-	,[4 ,2 , 5]])
-item_rank = ItemRank(np_data)
-item_rank.generate_graph()
-item_rank.generate_coef_from_graph()
-d = item_rank.generate_d(user_name=1)
-IR = np.ones(len(item_rank.movie_names))
-IR = d
-old_IR = IR
-converged = False
-counter = 0
-while not converged:
-	counter += 1
-	old_IR = IR
-	IR = item_rank.item_rank(0.85 , IR , d)
-	converged = (old_IR - IR < 0.0001).all()
-print "Converged after "+str(counter)+" counts."
-print "DOA : "+ str(item_rank.calculate_DOA(np_test_data,1 , IR)) 
